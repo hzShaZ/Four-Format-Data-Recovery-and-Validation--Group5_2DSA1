@@ -7,6 +7,7 @@ Nothing is converted or validated here.
 from __future__ import annotations
 
 import io
+
 import json
 from pathlib import Path
 
@@ -61,6 +62,7 @@ def read_excel_source(path: Path, settings: dict) -> pd.DataFrame:
     return to_canonical_raw(df, settings["mapping"], settings["file"])
 
 
+
 def flatten_record(record: dict, prefix: str = "") -> dict:
     """Flatten nested dicts into one level using dotted keys (a.b.c)."""
     flat: dict = {}
@@ -71,6 +73,8 @@ def flatten_record(record: dict, prefix: str = "") -> dict:
         else:
             flat[name] = "" if value is None else str(value)
     return flat
+
+
 
 
 def read_json_source(path: Path, settings: dict) -> pd.DataFrame:
