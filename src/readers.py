@@ -46,8 +46,18 @@ def read_csv_source(path: Path, settings: dict) -> pd.DataFrame:
 
 
 def read_excel_source(path: Path, settings: dict) -> pd.DataFrame:
-    """Read the Excel file."""
-    raise NotImplementedError
+    """Read the observations sheet as strings."""
+    try:
+        df = pd.read_excel(
+            path,
+            sheet_name=settings["sheet_name"],
+            dtype=str,
+            keep_default_na=False,
+            engine="openpyxl",
+        )
+    except ValueError as exc:
+        raise FileLevelError(f"{settings['file']}: {exc}") from exc
+    return to_canonical_raw(df, settings["mapping"], settings["file"])
 
 
 def read_json_source(path: Path, settings: dict) -> pd.DataFrame:
