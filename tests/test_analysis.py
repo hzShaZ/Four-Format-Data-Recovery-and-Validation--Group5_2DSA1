@@ -125,3 +125,56 @@ class TestWriteFiles(unittest.TestCase):
             self.assertEqual(len(paths), 1)
             text = Path(paths[0]).read_text(encoding="utf-8")
         self.assertTrue(text.startswith("country,continent,year"))
+        
+
+class TestRealData(unittest.TestCase):
+    """Run the analysis on the real cleaned JSON data."""
+
+    @classmethod
+    def setUpClass(cls) -> None:
+        entry = next(s for s in CONFIG["inputs"] if s["file"] == "country_records.json")
+        rules = {"allowed_continents": MANIFEST["allowed_continents"],
+                 "allowed_years": MANIFEST["allowed_years"]}
+        raw = read_source(entry, DATA)
+        cls.clean, _ = validate_records(raw, rules, entry["file"])
+
+    def test_clean_table_has_1704_rows(self) -> None:
+        self.assertEqual(len(self.clean), 1704)
+
+    def test_asia_2007_matches_manifest_controls(self) -> None:
+        controls = MANIFEST["controls"]
+        asia = asia_selected_year(self.clean, 2007)
+        self.assertEqual(len(asia), controls["asia_2007_rows"])
+        self.assertEqual(int(asia["pop"].sum()), controls["asia_2007_population"])
+        self.assertEqual(asia_population_total_numpy(self.clean, 2007)[1],
+                         controls["asia_2007_population"])
+
+    def test_philippines_history_matches_controls(self) -> None:
+        history = country_history(self.clean, "Philippines")
+        self.assertEqual(len(history), MANIFEST["controls"]["philippines_rows"])
+        self.assertEqual(int(history["pop"].iloc[-1]),
+                         MANIFEST["controls"]["philippines_2007_population"])
+
+    def test_changing_year_to_1997_regenerates_analysis(self) -> None:
+        asia = asia_selected_year(self.clean, 1997)
+        self.assertTrue((asia["year"] == 1997).all())
+        self.assertEqual(len(asia), len(asia_selected_year(self.clean, 1997)))
+        self.assertEqual(asia_population_total_numpy(self.clean, 1997)[1],
+                         int(asia["pop"].sum()))
+
+    def test_run_analysis_all_checks_pass_for_2007_and_1997(self) -> None:
+        for year in (2007, 1997):
+            result = run_analysis(self.clean, year, DEFAULT_COUNTRIES, DEFAULT_YEARS,
+                                  MANIFEST["controls"])
+            failed = [c["check"] for c in result["checks"] if not c["pass"]]
+            self.assertEqual(failed, [], year)
+        self.assertEqual(result["shapes"]["index"], (3, 6))
+
+    def test_control_checks_only_added_for_2007(self) -> None:
+        n_2007 = len(run_analysis(self.clean, 2007, controls=MANIFEST["controls"])["checks"])
+        n_1997 = len(run_analysis(self.clean, 1997, controls=MANIFEST["controls"])["checks"])
+        self.assertEqual(n_2007 - n_1997, 4)
+
+
+if __name__ == "__main__":
+    unittest.main()
