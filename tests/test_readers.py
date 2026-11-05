@@ -30,5 +30,28 @@ class TestCsvReader(unittest.TestCase):
         self.assertTrue(all(isinstance(v, str) for v in df["year"]))
 
 
+class TestExcelAndFailures(unittest.TestCase):
+    def test_excel_rows_and_columns(self) -> None:
+        df = read_source(setting("country_records.xlsx"), DATA)
+        self.assertEqual(len(df), 1712)
+        self.assertEqual(list(df.columns), ["source_record"] + CANONICAL)
+
+    def test_missing_file_stops(self) -> None:
+        bad = dict(setting("country_records.csv"), file="nope.csv")
+        with self.assertRaises(FileLevelError):
+            read_source(bad, DATA)
+
+    def test_unsupported_format_stops(self) -> None:
+        bad = {"file": "unsupported.txt", "format": "txt", "mapping": {}}
+        with self.assertRaises(FileLevelError):
+            read_source(bad, DATA)
+
+    def test_missing_column_stops(self) -> None:
+        canon = {c: c for c in CANONICAL}
+        bad = {"file": "missing_column.csv", "format": "csv", "mapping": canon}
+        with self.assertRaises(FileLevelError):
+            read_source(bad, DATA)
+
+
 if __name__ == "__main__":
     unittest.main()
