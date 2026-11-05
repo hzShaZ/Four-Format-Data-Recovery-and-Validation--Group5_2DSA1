@@ -1,0 +1,62 @@
+{
+  "data_dir": "data",
+  "output_dir": "outputs",
+  "staging_dir": "staging",
+  "reporting_year": 2007,
+  "inputs": [
+    {
+      "file": "country_records.csv",
+      "format": "csv",
+      "encoding": "cp1252",
+      "separator": ";",
+      "comment_prefix": "#",
+      "mapping": {
+        "CountryName": "country",
+        "ContinentName": "continent",
+        "ObservationYear": "year",
+        "LifeYears": "lifeExp",
+        "PopulationPersons": "pop",
+        "GDPPerPerson": "gdpPercap"
+      }
+    },
+    {
+      "file": "country_records.xlsx",
+      "format": "xlsx",
+      "sheet_name": "observations",
+      "mapping": {
+        "country_name": "country",
+        "continent_name": "continent",
+        "observation_year": "year",
+        "life_expectancy": "lifeExp",
+        "population": "pop",
+        "gdp_per_capita": "gdpPercap"
+      }
+    },
+    {
+      "file": "country_records.json",
+      "format": "json",
+      "encoding": "utf-8",
+      "record_path": "records",
+      "mapping": {
+        "identity.country": "country",
+        "identity.continent": "continent",
+        "identity.year": "year",
+        "measures.lifeExp": "lifeExp",
+        "measures.pop": "pop",
+        "measures.gdpPercap": "gdpPercap"
+      }
+    },
+    {
+      "file": "country_records.parquet",
+      "format": "parquet",
+      "mapping": {
+        "COUNTRY": "country",
+        "CONTINENT": "continent",
+        "YEAR": "year",
+        "LIFE_EXP": "lifeExp",
+        "POPULATION": "pop",
+        "GDP_PER_CAPITA": "gdpPercap"
+      }
+    }
+  ]
+}
