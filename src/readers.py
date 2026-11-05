@@ -6,6 +6,7 @@ Nothing is converted or validated here.
 """
 from __future__ import annotations
 
+import io
 from pathlib import Path
 
 import pandas as pd
@@ -30,8 +31,18 @@ def to_canonical_raw(df: pd.DataFrame, mapping: dict, source_file: str) -> pd.Da
 
 
 def read_csv_source(path: Path, settings: dict) -> pd.DataFrame:
-    """Read the CSV file."""
-    raise NotImplementedError
+    """Read the CSV file as strings, skipping comment lines."""
+    prefix = settings.get("comment_prefix")
+    with open(path, "r", encoding=settings.get("encoding", "utf-8"), newline="") as fh:
+        lines = [ln for ln in fh if not (prefix and ln.startswith(prefix))]
+    df = pd.read_csv(
+        io.StringIO("".join(lines)),
+        sep=settings.get("separator", ","),
+        dtype=str,
+        keep_default_na=False,
+        na_filter=False,
+    )
+    return to_canonical_raw(df, settings["mapping"], settings["file"])
 
 
 def read_excel_source(path: Path, settings: dict) -> pd.DataFrame:
