@@ -108,3 +108,62 @@ class TestJsonFailures(unittest.TestCase):
             cfg = dict(setting("country_records.json"), file="x.json")
             with self.assertRaises(FileLevelError):
                 read_source(cfg, tmp)
+    
+    
+class TestParquetNormalization(unittest.TestCase):
+    """Reader logic checked without needing a Parquet engine."""
+
+    def fake_frame(self) -> pd.DataFrame:
+        """Parquet-style frame: renamed columns, one missing value."""
+        cols = list(setting("country_records.parquet")["mapping"])
+        return pd.DataFrame(
+            [["Togo", "Africa", "1987", "56.941", "3154264", "1202.2"],
+             ["Fiji", "Oceania", "1992", None, "700000", "4000.5"]],
+            columns=cols,
+        )
+
+    def test_values_stay_strings_and_none_becomes_blank(self) -> None:
+        with mock.patch("src.readers.pd.read_parquet", return_value=self.fake_frame()):
+            df = read_source(
+                dict(setting("country_records.parquet"), file="country_records.csv"), DATA
+            )
+        self.assertEqual(list(df.columns), EXPECTED_COLUMNS)
+        self.assertEqual(list(df["source_record"]), [1, 2])
+        self.assertEqual(df["lifeExp"].iloc[1], "")
+        for col in CANONICAL:
+            self.assertTrue(all(isinstance(v, str) for v in df[col]), col)
+
+    def test_missing_column_stops(self) -> None:
+        frame = self.fake_frame().drop(columns=["POPULATION"])
+        with mock.patch("src.readers.pd.read_parquet", return_value=frame):
+            with self.assertRaises(FileLevelError):
+                read_source(
+                    dict(setting("country_records.parquet"), file="country_records.csv"), DATA
+                )
+
+
+@unittest.skipUnless(HAS_PYARROW, "pyarrow is not installed")
+class TestParquetReader(unittest.TestCase):
+    def setUp(self) -> None:
+        self.df = read_source(setting("country_records.parquet"), DATA)
+
+    def test_parquet_rows_and_columns(self) -> None:
+        self.assertEqual(len(self.df), 1712)
+        self.assertEqual(list(self.df.columns), EXPECTED_COLUMNS)
+
+    def test_parquet_source_record_is_one_based(self) -> None:
+        self.assertEqual(self.df["source_record"].iloc[0], 1)
+        self.assertEqual(self.df["source_record"].iloc[-1], 1712)
+
+    def test_parquet_values_are_strings(self) -> None:
+        for col in CANONICAL:
+            self.assertTrue(all(isinstance(v, str) for v in self.df[col]), col)
+
+    def test_parquet_missing_column_in_real_file_stops(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            cols = list(setting("country_records.parquet")["mapping"])
+            frame = pd.DataFrame([["a", "b", "1952", "1", "1", "1"]], columns=cols)
+            frame.drop(columns=["YEAR"]).to_parquet(Path(tmp, "x.parquet"))
+            cfg = dict(setting("country_records.parquet"), file="x.parquet")
+            with self.assertRaises(FileLevelError):
+                read_source(cfg, tmp)
