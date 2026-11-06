@@ -27,3 +27,15 @@ python -m unittest discover tests -v
 3. Mac - validation, quarantine, duplicates (branch m3-validation)
 4. Gab - pandas and NumPy analysis (branch m4-analysis)
 5. Marc - exports, staging, main.py, audit log (branch m5-exports-cli)
+
+
+AI Assistance Disclosure
+Generative AI tools were utilized during the development of this project for:
+
+- Code debugging, error analysis, and syntax troubleshooting across parsing modules.
+
+- Assisting in the drafting of unit test structures and edge-case test scenarios.
+
+- Reviewing documentation clarity and formatting.
+
+All outputs, logic implementations, and final analytical conclusions were independently reviewed, validated, and verified by the group members.
